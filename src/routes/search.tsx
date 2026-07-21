@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Search as SearchIcon, X, Clock, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
