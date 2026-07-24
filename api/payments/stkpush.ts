@@ -23,6 +23,18 @@ const MPESA_CALLBACK_URL =
 const MPESA_ENVIRONMENT =
   process.env.MPESA_ENVIRONMENT || "sandbox";
 
+/*
+ * Supabase admin client.
+ *
+ * Uses the service role key only on the Vercel
+ * serverless function. Never expose this key
+ * to frontend/browser code.
+ */
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!
+);
+
 const supabaseAdmin = createClient(
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
@@ -34,7 +46,6 @@ const supabaseAdmin = createClient(
   }
 );
 
-
 function getMpesaBaseUrl() {
   if (MPESA_ENVIRONMENT === "production") {
     return "https://api.safaricom.co.ke";
@@ -42,7 +53,6 @@ function getMpesaBaseUrl() {
 
   return "https://sandbox.safaricom.co.ke";
 }
-
 
 function normalizePhone(
   phone: string
@@ -65,7 +75,6 @@ function normalizePhone(
   );
 }
 
-
 function formatTimestamp(
   date = new Date()
 ): string {
@@ -81,7 +90,6 @@ function formatTimestamp(
     pad(date.getSeconds())
   );
 }
-
 
 async function getAccessToken() {
   const baseUrl = getMpesaBaseUrl();
@@ -115,7 +123,6 @@ async function getAccessToken() {
 
   return data.access_token;
 }
-
 
 export default async function handler(
   req: VercelRequest,
@@ -501,3 +508,4 @@ export default async function handler(
     });
   }
 }
+
