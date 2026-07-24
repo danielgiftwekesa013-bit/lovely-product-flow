@@ -32,7 +32,7 @@ function Splash() {
             <ShoppingBag className="h-11 w-11" strokeWidth={2.2} />
           </div>
           <div className="text-center">
-            <h1 className="text-4xl font-extrabold tracking-tight">Verde</h1>
+            <h1 className="text-4xl font-extrabold tracking-tight">PlugNplay</h1>
             <p className="mt-1 text-sm text-white/85">Shop the finer things.</p>
           </div>
         </div>

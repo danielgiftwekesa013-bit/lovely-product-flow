@@ -17,7 +17,7 @@ const slides = [
   },
   {
     icon: ShieldCheck,
-    title: "Fast, secure M-Pesa checkout",
+    title: "Fast &secure M-Pesa checkout",
     body: "Pay in a tap with the most trusted mobile wallet in Kenya.",
     tint: "from-emerald-200/60 to-primary/20",
   },
@@ -33,12 +33,7 @@ const slides = [
     body: "Share your code with friends and earn on every referral.",
     tint: "from-lime-200/60 to-primary/20",
   },
-  {
-    icon: Truck,
-    title: "Reliable, quick delivery",
-    body: "Real-time tracking so you always know where your order is.",
-    tint: "from-primary/10 to-emerald-200/60",
-  },
+  
 ];
 
 function Onboarding() {
@@ -62,7 +57,7 @@ function Onboarding() {
             <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-primary text-primary-foreground">
               <ShoppingBag className="h-4 w-4" />
             </div>
-            <span className="font-bold">Verde</span>
+            <span className="font-bold">PlugNplay</span>
           </div>
           <button
             className="text-sm font-medium text-muted-foreground"
