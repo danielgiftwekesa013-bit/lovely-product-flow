@@ -464,19 +464,70 @@ function Checkout() {
        * consumer secret, passkey or other secrets
        * in this frontend file.
        */
-      const response = await fetch(
-        "/api/payments/stkpush",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            orderId: order.id,
-            phoneNumber: stkPhone.trim(),
-          }),
-        }
-      );
+      
+/*
+ * Get the current Supabase authentication session.
+ * The access token is required by the Vercel
+ * STK Push API to verify the authenticated user.
+ */
+const {
+  data: {
+    session,
+  },
+  error: sessionError,
+} = await supabase.auth.getSession();
+
+if (sessionError) {
+  throw sessionError;
+}
+
+if (!session?.access_token) {
+  throw new Error(
+    "Your session has expired. Please log in again."
+  );
+}
+
+/*
+ * Call the Vercel serverless function.
+ *
+ * The Supabase access token is sent in the
+ * Authorization header so the server can verify
+ * that this order belongs to the logged-in user.
+ */
+const response = await fetch(
+  "/api/payments/stkpush",
+  {
+    method: "POST",
+
+    headers: {
+      "Content-Type":
+        "application/json",
+
+      Authorization:
+        `Bearer ${session.access_token}`,
+    },
+
+    body: JSON.stringify({
+      orderId:
+        order.id,
+
+      phoneNumber:
+        stkPhone.trim(),
+    }),
+  }
+);
+
+const result =
+  await response.json();
+
+if (!response.ok) {
+  throw new Error(
+    result?.error ??
+      "Unable to initiate M-Pesa STK Push."
+  );
+}
+
+
 
       const result = await response.json();
 
