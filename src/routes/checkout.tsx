@@ -529,15 +529,7 @@ if (!response.ok) {
 
 
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result?.error ??
-            "Unable to initiate M-Pesa STK Push."
-        );
-      }
-
+      
       /*
        * The STK Push has been successfully initiated.
        * This does NOT mean that payment is complete.
