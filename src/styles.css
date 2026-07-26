@@ -37,45 +37,127 @@
 
 :root {
   --radius: 1rem;
-  --background: oklch(0.995 0.005 150);
-  --foreground: oklch(0.18 0.03 160);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.03 160);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.03 160);
-  --primary: oklch(0.62 0.17 152);
-  --primary-foreground: oklch(0.99 0 0);
-  --primary-glow: oklch(0.78 0.16 150);
-  --secondary: oklch(0.96 0.02 150);
-  --secondary-foreground: oklch(0.28 0.06 155);
-  --muted: oklch(0.965 0.01 150);
-  --muted-foreground: oklch(0.52 0.03 160);
-  --accent: oklch(0.94 0.05 150);
-  --accent-foreground: oklch(0.28 0.08 155);
-  --destructive: oklch(0.6 0.22 25);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.93 0.015 150);
-  --input: oklch(0.94 0.012 150);
-  --ring: oklch(0.62 0.17 152);
 
-  --gradient-primary: linear-gradient(135deg, oklch(0.62 0.17 152), oklch(0.78 0.16 150));
-  --gradient-hero: linear-gradient(160deg, oklch(0.55 0.18 152) 0%, oklch(0.72 0.17 150) 60%, oklch(0.85 0.13 148) 100%);
-  --gradient-soft: linear-gradient(180deg, oklch(0.98 0.02 150), oklch(1 0 0));
-  --shadow-soft: 0 4px 20px -8px oklch(0.62 0.17 152 / 0.18);
-  --shadow-card: 0 6px 24px -12px oklch(0.35 0.08 160 / 0.15);
-  --shadow-elegant: 0 20px 40px -20px oklch(0.55 0.18 152 / 0.35);
-  --shadow-float: 0 12px 32px -12px oklch(0.35 0.1 160 / 0.25);
+  /* Rasta-inspired core palette */
+  --background: oklch(0.97 0.025 145);
+  --foreground: oklch(0.18 0.04 145);
+
+  /* Clean warm surfaces */
+  --card: oklch(0.995 0.008 90);
+  --card-foreground: oklch(0.18 0.04 145);
+
+  --popover: oklch(0.995 0.008 90);
+  --popover-foreground: oklch(0.18 0.04 145);
+
+  /* Deep Rasta green */
+  --primary: oklch(0.48 0.16 145);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-glow: oklch(0.72 0.18 145);
+
+  /* Golden yellow */
+  --secondary: oklch(0.91 0.16 88);
+  --secondary-foreground: oklch(0.22 0.06 80);
+
+  --muted: oklch(0.94 0.025 120);
+  --muted-foreground: oklch(0.48 0.045 145);
+
+  /* Warm gold accent */
+  --accent: oklch(0.88 0.17 82);
+  --accent-foreground: oklch(0.24 0.07 80);
+
+  /* Rasta red */
+  --destructive: oklch(0.52 0.19 28);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: oklch(0.87 0.035 120);
+  --input: oklch(0.91 0.025 120);
+  --ring: oklch(0.48 0.16 145);
+
+  /*
+   * Creative Rasta gradients
+   * Green = foundation
+   * Gold = energy
+   * Red = bold accent
+   */
+
+  --gradient-primary:
+    linear-gradient(
+      135deg,
+      oklch(0.42 0.15 145) 0%,
+      oklch(0.56 0.17 145) 55%,
+      oklch(0.72 0.18 88) 100%
+    );
+
+  --gradient-hero:
+    linear-gradient(
+      145deg,
+      oklch(0.38 0.15 145) 0%,
+      oklch(0.52 0.17 145) 42%,
+      oklch(0.82 0.18 88) 72%,
+      oklch(0.58 0.19 28) 100%
+    );
+
+  --gradient-soft:
+    linear-gradient(
+      180deg,
+      oklch(0.98 0.025 145) 0%,
+      oklch(0.98 0.04 90) 50%,
+      oklch(0.96 0.025 145) 100%
+    );
+
+  /* Subtle Rasta background glow */
+  --gradient-rasta-bg:
+    radial-gradient(
+      circle at 10% 10%,
+      oklch(0.72 0.18 145 / 0.14) 0%,
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 90% 20%,
+      oklch(0.88 0.18 88 / 0.16) 0%,
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 50% 100%,
+      oklch(0.58 0.19 28 / 0.10) 0%,
+      transparent 35%
+    ),
+    linear-gradient(
+      135deg,
+      oklch(0.97 0.025 145) 0%,
+      oklch(0.985 0.018 90) 50%,
+      oklch(0.97 0.025 145) 100%
+    );
+
+  --shadow-soft:
+    0 4px 20px -8px oklch(0.42 0.15 145 / 0.22);
+
+  --shadow-card:
+    0 6px 24px -12px oklch(0.25 0.08 145 / 0.18);
+
+  --shadow-elegant:
+    0 20px 40px -20px oklch(0.42 0.15 145 / 0.38);
+
+  --shadow-float:
+    0 12px 32px -12px oklch(0.30 0.10 145 / 0.28);
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
   }
-  html, body, #root {
+
+  html,
+  body,
+  #root {
     height: 100%;
   }
+
   body {
     background-color: var(--color-background);
+    background-image: var(--gradient-rasta-bg);
+    background-attachment: fixed;
+    background-size: cover;
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -85,52 +167,93 @@
 @utility bg-gradient-primary {
   background-image: var(--gradient-primary);
 }
+
 @utility bg-gradient-hero {
   background-image: var(--gradient-hero);
 }
+
 @utility bg-gradient-soft {
   background-image: var(--gradient-soft);
 }
+
+@utility bg-gradient-rasta {
+  background-image: var(--gradient-rasta-bg);
+}
+
 @utility shadow-soft {
   box-shadow: var(--shadow-soft);
 }
+
 @utility shadow-card {
   box-shadow: var(--shadow-card);
 }
+
 @utility shadow-elegant {
   box-shadow: var(--shadow-elegant);
 }
+
 @utility shadow-float {
   box-shadow: var(--shadow-float);
 }
 
 @utility scrollbar-hide {
   scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+  0% {
+    background-position: -400px 0;
+  }
+
+  100% {
+    background-position: 400px 0;
+  }
 }
+
 @utility shimmer {
-  background: linear-gradient(90deg, oklch(0.95 0.01 150) 0%, oklch(0.98 0.01 150) 50%, oklch(0.95 0.01 150) 100%);
+  background:
+    linear-gradient(
+      90deg,
+      oklch(0.94 0.025 145) 0%,
+      oklch(0.98 0.10 88) 50%,
+      oklch(0.94 0.025 145) 100%
+    );
   background-size: 800px 100%;
   animation: shimmer 1.6s infinite linear;
 }
 
 @keyframes float-slow {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
 }
+
 @utility float-slow {
   animation: float-slow 4s ease-in-out infinite;
 }
 
 @keyframes pop-in {
-  0% { transform: scale(0.9); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
+
 @utility pop-in {
   animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
