@@ -365,8 +365,8 @@ function Checkout() {
       throw new Error("No order available.");
     }
 
-    const maxAttempts = 60;
-    const intervalMs = 2000;
+    const maxAttempts = 10;
+    const intervalMs = 1000;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const {
