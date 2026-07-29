@@ -16,17 +16,6 @@ const supabaseAdmin = createClient(
   }
 );
 
-/*
- * Safaricom sends transaction dates in:
- *
- * YYYYMMDDHHmmss
- *
- * Example:
- * 20260729150833
- *
- * We convert this into an ISO timestamp with
- * the Kenya timezone (+03:00).
- */
 function parseMpesaTransactionDate(
   transactionDate: unknown
 ): string | null {
@@ -58,11 +47,51 @@ export default async function handler(
 ) {
   /*
    * --------------------------------------------------
-   * 1. Only accept POST requests
+   * 0. VERY FIRST LOG
+   * --------------------------------------------------
+   *
+   * If you don't see this in Vercel logs,
+   * Safaricom is not reaching this function.
+   */
+
+  console.log(
+    "=========================================="
+  );
+
+  console.log(
+    "M-PESA CALLBACK FUNCTION INVOKED"
+  );
+
+  console.log(
+    "Method:",
+    req.method
+  );
+
+  console.log(
+    "URL:",
+    req.url
+  );
+
+  console.log(
+    "Time:",
+    new Date().toISOString()
+  );
+
+  console.log(
+    "=========================================="
+  );
+
+  /*
+   * --------------------------------------------------
+   * 1. Only accept POST
    * --------------------------------------------------
    */
 
   if (req.method !== "POST") {
+    console.log(
+      "Callback rejected because method is not POST."
+    );
+
     return res.status(405).json({
       ResultCode: 1,
       ResultDesc: "Method not allowed",
@@ -70,14 +99,27 @@ export default async function handler(
   }
 
   try {
+    /*
+     * --------------------------------------------------
+     * 2. Log complete callback body
+     * --------------------------------------------------
+     */
+
     console.log(
-      "M-Pesa callback received:",
-      JSON.stringify(req.body)
+      "M-PESA CALLBACK BODY:"
+    );
+
+    console.log(
+      JSON.stringify(
+        req.body,
+        null,
+        2
+      )
     );
 
     /*
      * --------------------------------------------------
-     * 2. Extract STK callback
+     * 3. Extract STK callback
      * --------------------------------------------------
      */
 
@@ -86,13 +128,16 @@ export default async function handler(
 
     if (!stkCallback) {
       console.error(
-        "Invalid M-Pesa callback body."
+        "INVALID CALLBACK BODY:"
       );
 
-      /*
-       * Always acknowledge the request.
-       * Safaricom expects a successful response.
-       */
+      console.error(
+        JSON.stringify(
+          req.body,
+          null,
+          2
+        )
+      );
 
       return res.status(200).json({
         ResultCode: 0,
@@ -108,41 +153,34 @@ export default async function handler(
       stkCallback.CheckoutRequestID ||
       null;
 
-    const resultCode = Number(
-      stkCallback.ResultCode
-    );
-
-    const resultDesc =
-      stkCallback.ResultDesc || "";
-
-    const callbackMetadata =
-      stkCallback.CallbackMetadata?.Item ??
-      [];
-
-    /*
-     * --------------------------------------------------
-     * 3. Validate CheckoutRequestID
-     * --------------------------------------------------
-     */
-
-    if (!checkoutRequestId) {
-      console.error(
-        "Callback does not contain CheckoutRequestID."
+    const resultCode =
+      Number(
+        stkCallback.ResultCode
       );
 
-      return res.status(200).json({
-        ResultCode: 0,
-        ResultDesc: "Accepted",
-      });
-    }
+    const resultDesc =
+      stkCallback.ResultDesc ||
+      "";
+
+    console.log(
+      "Callback identifiers:",
+      {
+        merchantRequestId,
+        checkoutRequestId,
+        resultCode,
+        resultDesc,
+      }
+    );
 
     /*
      * --------------------------------------------------
-     * 4. Save raw callback
+     * 4. Save callback immediately
      * --------------------------------------------------
      *
-     * This gives you an audit trail of every callback
-     * received from Safaricom.
+     * This happens BEFORE transaction lookup.
+     *
+     * Therefore, if Safaricom reaches this function,
+     * mpesa_callbacks should contain a row.
      */
 
     const {
@@ -170,23 +208,57 @@ export default async function handler(
           false,
       })
       .select("id")
-      .maybeSingle();
+      .single();
 
     if (callbackInsertError) {
       console.error(
-        "Failed to save callback:",
-        callbackInsertError
+        "CALLBACK DATABASE INSERT FAILED:"
+      );
+
+      console.error(
+        JSON.stringify(
+          callbackInsertError,
+          null,
+          2
+        )
+      );
+    } else {
+      console.log(
+        "CALLBACK SAVED TO DATABASE:"
+      );
+
+      console.log(
+        callbackRecord
       );
     }
 
     /*
      * --------------------------------------------------
-     * 5. Find the exact M-Pesa transaction
+     * 5. Validate CheckoutRequestID
      * --------------------------------------------------
-     *
-     * The CheckoutRequestID was created by stkpush.ts
-     * and stored in mpesa_transactions.
      */
+
+    if (!checkoutRequestId) {
+      console.error(
+        "Missing CheckoutRequestID."
+      );
+
+      return res.status(200).json({
+        ResultCode: 0,
+        ResultDesc: "Accepted",
+      });
+    }
+
+    /*
+     * --------------------------------------------------
+     * 6. Find transaction
+     * --------------------------------------------------
+     */
+
+    console.log(
+      "Looking for transaction:",
+      checkoutRequestId
+    );
 
     const {
       data: transaction,
@@ -202,8 +274,15 @@ export default async function handler(
 
     if (transactionError) {
       console.error(
-        "Transaction lookup error:",
-        transactionError
+        "TRANSACTION LOOKUP FAILED:"
+      );
+
+      console.error(
+        JSON.stringify(
+          transactionError,
+          null,
+          2
+        )
       );
 
       return res.status(200).json({
@@ -214,7 +293,10 @@ export default async function handler(
 
     if (!transaction) {
       console.error(
-        "No M-Pesa transaction found for CheckoutRequestID:",
+        "NO TRANSACTION FOUND:"
+      );
+
+      console.error(
         checkoutRequestId
       );
 
@@ -224,47 +306,20 @@ export default async function handler(
       });
     }
 
-    /*
-     * --------------------------------------------------
-     * 6. Idempotency
-     * --------------------------------------------------
-     *
-     * If this transaction has already completed,
-     * do not process it again.
-     */
-
-    if (
-      transaction.status ===
-      "completed"
-    ) {
-      console.log(
-        "Transaction already completed:",
-        checkoutRequestId
-      );
-
-      if (callbackRecord?.id) {
-        await supabaseAdmin
-          .from("mpesa_callbacks")
-          .update({
-            processed: true,
-          })
-          .eq(
-            "id",
-            callbackRecord.id
-          );
-      }
-
-      return res.status(200).json({
-        ResultCode: 0,
-        ResultDesc: "Accepted",
-      });
-    }
+    console.log(
+      "TRANSACTION FOUND:",
+      transaction.id
+    );
 
     /*
      * --------------------------------------------------
-     * 7. Extract successful payment metadata
+     * 7. Extract callback metadata
      * --------------------------------------------------
      */
+
+    const callbackMetadata =
+      stkCallback.CallbackMetadata
+        ?.Item ?? [];
 
     const receipt =
       callbackMetadata.find(
@@ -293,22 +348,27 @@ export default async function handler(
           "PhoneNumber"
       )?.Value ?? null;
 
-    const parsedTransactionDate =
-      parseMpesaTransactionDate(
-        transactionDate
-      );
-
     /*
      * --------------------------------------------------
-     * 8. Handle successful payment
+     * 8. Successful payment
      * --------------------------------------------------
      */
 
     if (resultCode === 0) {
+      console.log(
+        "SUCCESSFUL M-PESA PAYMENT"
+      );
+
+      console.log({
+        checkoutRequestId,
+        receipt,
+        callbackAmount,
+        transactionDate,
+        phoneNumber,
+      });
+
       /*
-       * ------------------------------------------------
-       * 8A. Fetch order
-       * ------------------------------------------------
+       * Get order
        */
 
       const {
@@ -328,14 +388,12 @@ export default async function handler(
         !order
       ) {
         console.error(
-          "Order not found:",
-          transaction.order_id
+          "ORDER LOOKUP FAILED:"
         );
 
-        /*
-         * Do not mark transaction as completed
-         * if the associated order cannot be found.
-         */
+        console.error(
+          orderError
+        );
 
         return res.status(200).json({
           ResultCode: 0,
@@ -344,27 +402,12 @@ export default async function handler(
       }
 
       /*
-       * ------------------------------------------------
-       * 8B. Verify callback amount
-       * ------------------------------------------------
-       *
-       * Verify against BOTH:
-       *
-       * 1. The amount stored in mpesa_transactions
-       * 2. The amount stored in orders
-       *
-       * This prevents an incorrect amount from being
-       * treated as a successful payment.
+       * Verify amount
        */
 
-      const expectedTransactionAmount =
+      const expectedAmount =
         Number(
           transaction.amount
-        );
-
-      const expectedOrderAmount =
-        Number(
-          order.total_amount
         );
 
       const receivedAmount =
@@ -372,43 +415,29 @@ export default async function handler(
           callbackAmount
         );
 
-      const amountMatches =
-        Number.isFinite(
+      console.log(
+        "PAYMENT AMOUNT CHECK:",
+        {
+          expectedAmount,
+          receivedAmount,
+          orderTotal:
+            Number(
+              order.total_amount
+            ),
+        }
+      );
+
+      if (
+        expectedAmount !==
+          receivedAmount ||
+        Number(
+          order.total_amount
+        ) !==
           receivedAmount
-        ) &&
-        receivedAmount ===
-          expectedTransactionAmount &&
-        receivedAmount ===
-          expectedOrderAmount;
-
-      if (!amountMatches) {
+      ) {
         console.error(
-          "M-Pesa payment amount mismatch:",
-          {
-            orderId:
-              order.id,
-
-            checkoutRequestId,
-
-            expectedTransactionAmount,
-
-            expectedOrderAmount,
-
-            receivedAmount,
-          }
+          "PAYMENT AMOUNT MISMATCH"
         );
-
-        /*
-         * Mark this particular payment attempt
-         * as failed.
-         *
-         * IMPORTANT:
-         *
-         * We do NOT mark the order as failed.
-         *
-         * The order remains pending so the customer
-         * can retry payment.
-         */
 
         await supabaseAdmin
           .from(
@@ -435,20 +464,6 @@ export default async function handler(
             transaction.id
           );
 
-        if (callbackRecord?.id) {
-          await supabaseAdmin
-            .from(
-              "mpesa_callbacks"
-            )
-            .update({
-              processed: true,
-            })
-            .eq(
-              "id",
-              callbackRecord.id
-            );
-        }
-
         return res.status(200).json({
           ResultCode: 0,
           ResultDesc: "Accepted",
@@ -456,9 +471,7 @@ export default async function handler(
       }
 
       /*
-       * ------------------------------------------------
-       * 8C. Complete M-Pesa transaction
-       * ------------------------------------------------
+       * Complete transaction
        */
 
       const {
@@ -484,7 +497,9 @@ export default async function handler(
               : null,
 
           transaction_date:
-            parsedTransactionDate,
+            parseMpesaTransactionDate(
+              transactionDate
+            ),
 
           callback_response:
             req.body,
@@ -495,27 +510,24 @@ export default async function handler(
         .eq(
           "id",
           transaction.id
-        )
-        .neq(
-          "status",
-          "completed"
         );
 
       if (
         transactionUpdateError
       ) {
+        console.error(
+          "TRANSACTION UPDATE FAILED:"
+        );
+
         throw transactionUpdateError;
       }
 
+      console.log(
+        "M-PESA TRANSACTION MARKED COMPLETED"
+      );
+
       /*
-       * ------------------------------------------------
-       * 8D. Mark order as paid
-       * ------------------------------------------------
-       *
-       * We only update an order that is still pending.
-       *
-       * This prevents an older/duplicate callback from
-       * overwriting a newer order state.
+       * Update order
        */
 
       const {
@@ -558,73 +570,48 @@ export default async function handler(
       if (
         orderUpdateError
       ) {
+        console.error(
+          "ORDER UPDATE FAILED:"
+        );
+
         throw orderUpdateError;
       }
 
-      /*
-       * ------------------------------------------------
-       * 8E. Mark callback processed
-       * ------------------------------------------------
-       */
-
-      if (callbackRecord?.id) {
-        await supabaseAdmin
-          .from(
-            "mpesa_callbacks"
-          )
-          .update({
-            processed: true,
-          })
-          .eq(
-            "id",
-            callbackRecord.id
-          );
-      }
-
       console.log(
-        "M-Pesa payment successfully confirmed:",
-        {
-          orderId:
-            order.id,
-
-          orderNumber:
-            order.order_number,
-
-          checkoutRequestId,
-
-          receipt,
-
-          amount:
-            receivedAmount,
-        }
+        "ORDER SUCCESSFULLY MARKED PAID:"
       );
+
+      console.log({
+        orderId:
+          order.id,
+
+        orderNumber:
+          order.order_number,
+
+        receipt,
+      });
     }
 
     /*
      * --------------------------------------------------
-     * 9. Handle failed / cancelled STK Push
+     * 9. Failed payment
      * --------------------------------------------------
-     *
-     * IMPORTANT:
-     *
-     * We mark ONLY the transaction attempt as failed.
-     *
-     * We intentionally DO NOT set:
-     *
-     * orders.payment_status = "failed"
-     *
-     * because your stkpush.ts requires:
-     *
-     * order_status = "pending"
-     * payment_status = "pending"
-     *
-     * This allows the customer to retry the same order.
      */
 
     else {
+      console.log(
+        "M-PESA PAYMENT FAILED OR CANCELLED:"
+      );
+
+      console.log({
+        checkoutRequestId,
+        resultCode,
+        resultDesc,
+      });
+
       const {
         error:
-          failedTransactionError,
+          failedUpdateError,
       } = await supabaseAdmin
         .from(
           "mpesa_transactions"
@@ -651,58 +638,57 @@ export default async function handler(
         );
 
       if (
-        failedTransactionError
+        failedUpdateError
       ) {
-        throw failedTransactionError;
+        throw failedUpdateError;
       }
 
       /*
-       * Do NOT update orders.payment_status.
+       * IMPORTANT:
        *
-       * The order remains:
-       *
-       * payment_status = pending
+       * We intentionally leave the order as:
        *
        * order_status = pending
+       * payment_status = pending
        *
-       * This means the customer can initiate
-       * another STK Push for the same order.
+       * This allows another STK Push attempt.
        */
-
-      if (callbackRecord?.id) {
-        await supabaseAdmin
-          .from(
-            "mpesa_callbacks"
-          )
-          .update({
-            processed: true,
-          })
-          .eq(
-            "id",
-            callbackRecord.id
-          );
-      }
-
-      console.log(
-        "M-Pesa payment attempt failed or was cancelled:",
-        {
-          orderId:
-            transaction.order_id,
-
-          checkoutRequestId,
-
-          resultCode,
-
-          resultDesc,
-        }
-      );
     }
 
     /*
      * --------------------------------------------------
-     * 10. Always acknowledge Safaricom callback
+     * 10. Mark callback processed
      * --------------------------------------------------
      */
+
+    if (callbackRecord?.id) {
+      const {
+        error:
+          processedError,
+      } = await supabaseAdmin
+        .from(
+          "mpesa_callbacks"
+        )
+        .update({
+          processed:
+            true,
+        })
+        .eq(
+          "id",
+          callbackRecord.id
+        );
+
+      if (processedError) {
+        console.error(
+          "FAILED TO MARK CALLBACK PROCESSED:",
+          processedError
+        );
+      }
+    }
+
+    console.log(
+      "M-PESA CALLBACK PROCESSING COMPLETE"
+    );
 
     return res.status(200).json({
       ResultCode: 0,
@@ -710,16 +696,23 @@ export default async function handler(
     });
   } catch (error: any) {
     console.error(
-      "M-Pesa callback processing error:",
+      "=========================================="
+    );
+
+    console.error(
+      "M-PESA CALLBACK PROCESSING ERROR"
+    );
+
+    console.error(
       error
+    );
+
+    console.error(
+      "=========================================="
     );
 
     /*
      * Always acknowledge Safaricom.
-     *
-     * The raw callback was already stored before
-     * processing, allowing you to investigate
-     * failures later.
      */
 
     return res.status(200).json({
