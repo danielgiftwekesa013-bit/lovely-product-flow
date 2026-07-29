@@ -806,7 +806,7 @@ if (!response.ok) {
               </p>
 
               <p className="text-xs text-muted-foreground">
-                Pay via STK Push
+                Pay via M-Pesa prompt
               </p>
             </div>
           </label>

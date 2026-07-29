@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Package,
-  Bell,
   LogOut,
   ChevronRight,
   Gift,
@@ -41,7 +40,7 @@ function Profile() {
     { icon: Package, label: "Order History", to: "/orders" },
     { icon: Gift, label: "Loyalty Rewards", to: "/rewards" },
     { icon: Users, label: "Referral Rewards", to: "/referrals" },
-    { icon: Bell, label: "Notifications", to: "/notifications" },
+    
   ];
 
   useEffect(() => {
